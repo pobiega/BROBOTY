@@ -6,14 +6,15 @@ import System.Exit
 import Control.Monad.Reader
 -- import Control.Exception -- for base-3, with base-4 use Control.OldException
 import Control.OldException
+import Control.Concurrent
 import Text.Printf
 import Prelude hiding (catch)
  
 server = "irc.quakenet.org"
 port   = 6667
-chan   = "#rpg.se"
+chan   = "#broboty"
 nick   = "BROBOTY"
- 
+
 --
 -- The 'Net' monad, a wrapper over IO, carrying the bot's immutable state.
 -- A socket and the bot's start time.
@@ -37,6 +38,7 @@ connect :: IO Bot
 connect = notify $ do
     t <- getClockTime
     h <- connectTo server (PortNumber (fromIntegral port))
+    hSetEncoding h utf8
     hSetBuffering h NoBuffering
     return (Bot h t)
   where
@@ -53,7 +55,6 @@ run :: Net ()
 run = do
     write "NICK" nick
     write "USER" (nick++" 0 * :tutorial bot")
-    write "JOIN" chan
     asks socket >>= listen
  
 --
@@ -77,6 +78,7 @@ eval :: String -> Net ()
 eval     "!uptime"             = uptime >>= privmsg
 eval     "!quit"               = write "QUIT" ":Exiting" >> io (exitWith ExitSuccess)
 eval x | "!id " `isPrefixOf` x = privmsg (drop 4 x)
+eval     "End of /MOTD command." = write "JOIN" chan
 eval     _                     = return () -- ignore everything else
  
 --
